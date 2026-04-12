@@ -99,17 +99,17 @@ async def predict(file: UploadFile = File(...)):
 
     # --- Smart Confidence + Entropy Check ---
     entropy = -float(np.sum(preds * np.log(preds + 1e-12)))
-    MAX_PROB_THRESHOLD = 0.80   # require at least 80% probability to accept
-    ENTROPY_THRESHOLD = 0.9     # if entropy > 0.9 (nats) -> uncertain, reject
+    MAX_PROB_THRESHOLD = 0.50   # require at least 50% probability to accept
+    ENTROPY_THRESHOLD = 1.5     # if entropy > 1.5 (nats) -> uncertain, reject
 
     # For a 38-class model, also reject if it's confidently predicting a non-apple plant.
     reject_non_apple = num_classes == 38 and "Apple" not in pred_class
 
-    if max_prob < MAX_PROB_THRESHOLD or entropy > ENTROPY_THRESHOLD or reject_non_apple:
-        raise HTTPException(
-            status_code=400,
-            detail="⚠️ This image is not recognized as a clear Apple leaf sample. Please upload a clear photo of an Apple leaf (crop the leaf area if needed).",
-        )
+    low_confidence = max_prob < MAX_PROB_THRESHOLD or entropy > ENTROPY_THRESHOLD
+
+    warning = None
+    if low_confidence or reject_non_apple:
+        warning = "Low confidence prediction or possibly not an apple leaf"
 
     # Build 4-class apple probability breakdown for the frontend graph
     probabilities = []
@@ -133,4 +133,5 @@ async def predict(file: UploadFile = File(...)):
         "prediction": pred_class,
         "confidence": max_prob * 100,
         "probabilities": probabilities,
+        "warning": warning
     }
