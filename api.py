@@ -97,6 +97,17 @@ async def predict(file: UploadFile = File(...)):
     pred_idx = int(np.argmax(preds))
     pred_class = class_names[pred_idx]
 
+    # Get indices of apple classes
+    apple_indices = [class_names.index(c) for c in apple_classes]
+
+    # Extract only apple predictions
+    apple_preds = [preds[i] for i in apple_indices]
+
+    # Find best apple class
+    best_idx = np.argmax(apple_preds)
+    pred_class = apple_classes[best_idx]
+    max_prob = float(apple_preds[best_idx])
+
     # --- Smart Confidence + Entropy Check ---
     entropy = -float(np.sum(preds * np.log(preds + 1e-12)))
     MAX_PROB_THRESHOLD = 0.50   # require at least 50% probability to accept
